@@ -4,7 +4,8 @@
   "description": "An implementation of a Gaussian Mixture class in one dimension, that allows to fit models with an Expectation Maximization algorithm.",
   "main": "index.js",
   "scripts": {
-    "test": "standard && tap test/*.test.js"
+    "test": "standard && tap test/*.test.js",
+    "cover": "tap test/*.test.js --cov --coverage-report=lcov"
   },
   "keywords": [
     "expectation",
