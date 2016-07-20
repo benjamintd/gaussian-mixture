@@ -23,6 +23,7 @@ function GMM (nComponents, weights, means, vars) {
 
 GMM.prototype.sample = function (nSamples) {
   // nSamples: integer
+  // returns: array of length nSamples
   var samples = []
   var gaussians = this._gaussians()
   // generate samples
@@ -38,21 +39,60 @@ GMM.prototype.sample = function (nSamples) {
   return samples
 }
 
-GMM.prototype.scoreSamples = function (data) {
+GMM.prototype.memberships = function (data) {
   // data: array of floats representing the samples to score under the model
+  // return: (data.length * this.nComponents) matrix with membership weights
+  var memberships = []
+  for (var i = 0; i < data.length; i++) {
+    memberships.push(this.membership(data[i]))
+  }
+  return memberships
 }
 
-GMM.prototype.scoreSample = function (x) {
-  // x: a float representing a single datapoint
-  var probs = []
+GMM.prototype.membership = function (x) {
+  // x: float representing a single datapoint
+  // return: array of probabilities of length this.nComponents
+  var membership = []
   var gaussians = this._gaussians()
   for (var i = 0; i < this.nComponents; i++) {
-    probs.push(gaussians[i].pdf(x))
+    membership.push(gaussians[i].pdf(x))
   }
-  var sum = probs.reduce(function (a, b) { return a + b })
-  return probs.map(function (a) {
-    return a / sum
-  })
+  var sum = membership.reduce(function (a, b) { return a + b })
+  return membership.map(function (a) { return a / sum })
+}
+
+GMM.prototype.updateModel = function (data) {
+  // This function performs an expectation maximization step.
+  // It will update the GMM weights, means and variances.
+
+  // First, we compute the data memberships.
+  var n = data.length
+  var memberships = this.memberships(data)
+
+  // Update the mixture weights
+  var componentWeights = []
+  for (var k = 0; k < this.nComponents; k++) {
+    componentWeights[k] = memberships.reduce(function (a, b) { return (a + b[k]) }, 0)
+  }
+  this.weights = componentWeights.map(function (a) { return a / n })
+
+  // Update the mixture means
+  for (k = 0; k < this.nComponents; k++) {
+    this.means[k] = 0
+    for (var i = 0; i < n; i++) {
+      this.means[k] += memberships[i][k] * data[i]
+    }
+    this.means[k] /= componentWeights[k]
+  }
+
+  // Update the mixture variances
+  for (k = 0; k < this.nComponents; k++) {
+    this.vars[k] = 0
+    for (i = 0; i < n; i++) {
+      this.vars[k] += memberships[i][k] * Math.pow(data[i] - this.means[k], 2)
+    }
+    this.vars[k] /= componentWeights[k]
+  }
 }
 
 GMM.prototype._gaussians = function () {
