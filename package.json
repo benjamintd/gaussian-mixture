@@ -1,6 +1,6 @@
 {
-  "name": "GaussianMixture",
-  "version": "0.0.0",
+  "name": "gaussianMixture",
+  "version": "0.0.1",
   "description": "An implementation of a Gaussian Mixture class in one dimension, that allows to fit models with an Expectation Maximization algorithm.",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "mixture"
   ],
   "author": "Benjamin Tran Dinh",
-  "license": "BSD-2-Clause",
+  "license": "MIT",
   "devDependencies": {
     "standard": "~7.1.2",
     "tap": "~6.2.0"

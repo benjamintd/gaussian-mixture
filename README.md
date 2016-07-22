@@ -16,11 +16,9 @@ var gmm = new GMM(nComponents, weights, means, vars)
 gmm.sample(10)  // return 10 datapoints from the mixture
 
 data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2]
-gmm.updateModel(data) // updates weights, means and variances with a single EM step given the data
+gmm.optimize(data) // updates weights, means and variances with the EM algorithm given the data.
 ```
 
 ## TODO
 
 - optionally initialize values with k-means
-- write log-likelihood method to know when to stop iterating for the optimization
-- write the full optimization algorithm that terminates either with a max number of steps or stabilization of the log likelihood

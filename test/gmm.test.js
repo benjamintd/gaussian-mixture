@@ -66,3 +66,38 @@ test('Convergence of model update', function (t) {
     t.equals(Math.abs(testGmm.vars[j] - refGmm.vars[j]) < 1, true)
   }
 })
+
+test('log likelihood function', function (t) {
+  t.plan(15)
+
+  var gmm = new GMM(3, undefined, [-1, 15, 37], [1, 1, 1])
+  var data = require('./fixtures/data.json') // 200 samples from another GMM
+  var l = -Infinity
+  var temp
+  for (var i = 0; i < 15; i++) {
+    gmm.updateModel(data)
+    temp = gmm.logLikelihood(data)
+    t.equals(temp - l >= -1e-5, true)
+    l = temp
+  }
+})
+
+test('EM full optimization', function (t) {
+  t.plan(10)
+
+  var gmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1])
+  var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1])
+
+  var data = require('./fixtures/data.json') // 200 samples from refGmm
+  for (var i = 0; i < 200; i++) {
+    gmm.updateModel(data)
+  }
+  var counter = gmm2.optimize(data)
+
+  t.equals(counter, 3)
+  for (var j = 0; j < 3; j++) {
+    t.equals(Math.abs(gmm.weights[j] - gmm2.weights[j]) < 1e-7, true)
+    t.equals(Math.abs(gmm.means[j] - gmm2.means[j]) < 1e-7, true)
+    t.equals(Math.abs(gmm.vars[j] - gmm2.vars[j]) < 1e-7, true)
+  }
+})
