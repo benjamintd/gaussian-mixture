@@ -18,7 +18,3 @@ gmm.sample(10)  // return 10 datapoints from the mixture
 data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2]
 gmm.optimize(data) // updates weights, means and variances with the EM algorithm given the data.
 ```
-
-## TODO
-
-- optionally initialize values with k-means
