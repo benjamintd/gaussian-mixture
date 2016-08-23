@@ -1,4 +1,5 @@
 # Gaussian Mixture
+[![Build Status](https://travis-ci.org/benjamintd/gaussian-mixture.svg?branch=master)](https://travis-ci.org/benjamintd/gaussian-mixture)
 
 This module implements a 1D Gaussian Mixture class that allows to fit a distribution of points along a one dimensional axis.
 
