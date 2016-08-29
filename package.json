@@ -5,7 +5,9 @@
   "main": "index.js",
   "repository": "git@github.com:benjamintd/gaussian-mixture.git",
   "scripts": {
-    "test": "standard && tap test/*.test.js",
+    "test": "npm run lint && tap test/*.test.js",
+    "lint": "eslint '*.js' 'test/*.test.js'",
+    "fix": "eslint --fix '*.js' 'test/*.test.js'",
     "cover": "tap test/*.test.js --cov --coverage-report=lcov"
   },
   "keywords": [
@@ -17,7 +19,8 @@
   "author": "Benjamin Tran Dinh",
   "license": "MIT",
   "devDependencies": {
-    "standard": "~7.1.2",
+    "eslint": "^3.4.0",
+    "eslint-config-mourner": "^2.0.1",
     "tap": "~6.2.0"
   },
   "dependencies": {
