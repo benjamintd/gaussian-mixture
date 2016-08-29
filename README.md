@@ -28,6 +28,7 @@ Optionally, define an options object and pass it at instantiation:
 ```
 var options = {
   variancePrior: // Float,
+  separationPrior: // Float,
   priorRelevance: // Positive float.
 };
 
@@ -35,5 +36,7 @@ var gmm = new GMM(nComponents, weights, means, vars, options);
 ```
 
 The variance prior allows you to define a prior for the variance of all components (assumed the same). This prior will be mixed in the maximization step of the EM optimization with a relevance score equal to `options.priorRelevance`.
+
+Similarly, the separation prior allows you to define a prior for the difference between consecutive gaussian mixture means. This prior is mixed with the sale `options.priorRelevance` score.
 
 The mixing weight `alpha` for component `i` is `alpha = weights[i] / (weights[i] + options.priorRelevance)`.
