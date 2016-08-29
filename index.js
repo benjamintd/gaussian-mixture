@@ -10,7 +10,7 @@ var LOG_LIKELIHOOD_TOL = 1e-7;
 
 module.exports = GMM;
 
-function GMM(nComponents, weights, means, vars) {
+function GMM(nComponents, weights, means, vars, options) {
   // nComponents: number of components in the mixture
   // weights: array of weights of each component in the mixture, must sum to 1
   // means: array of means of each component
@@ -20,10 +20,11 @@ function GMM(nComponents, weights, means, vars) {
   this.means = means === undefined ? _.range(nComponents) : means;
   this.vars = vars === undefined ? _.range(nComponents).map(function () { return 1; }) : vars;
   if (nComponents !== this.weights.length ||
-    nComponents !== this.means.length ||
-    nComponents !== this.vars.length) {
+      nComponents !== this.means.length ||
+      nComponents !== this.vars.length) {
     throw new Error('weights, means and vars must have nComponents elements.');
   }
+  this.options = options === undefined ? {} : options;
 }
 
 GMM.prototype._gaussians = function () {
@@ -77,6 +78,8 @@ GMM.prototype.membership = function (x) {
 GMM.prototype.updateModel = function (data) {
   // This function performs an expectation maximization step.
   // It will update the GMM weights, means and variances.
+  // Optionally, if options.variancePrior and options.priorRelevance are defined,
+  // mix in the prior.
 
   // First, we compute the data memberships.
   var n = data.length;
@@ -106,6 +109,11 @@ GMM.prototype.updateModel = function (data) {
       this.vars[k] += memberships[i][k] * Math.pow(data[i] - this.means[k], 2);
     }
     this.vars[k] /= componentWeights[k];
+    // If there is a variance prior:
+    if (this.options.variancePrior && this.options.priorRelevance) {
+      var alpha = this.weights[k] / (this.weights[k] + this.options.priorRelevance);
+      this.vars[k] = alpha * this.vars[k] + (1 - alpha) * this.options.variancePrior;
+    }
   }
 };
 

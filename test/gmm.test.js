@@ -102,3 +102,31 @@ test('EM full optimization', function (t) {
     t.equals(Math.abs(gmm.vars[j] - gmm2.vars[j]) < 1e-7, true);
   }
 });
+
+test('Variance prior', function (t) {
+  t.plan(3);
+
+  var options = {
+    variancePrior: 3,
+    priorRelevance: 0.01
+  };
+  var options2 = {
+    variancePrior: 3,
+    priorRelevance: 1
+  };
+  var options3 = {
+    variancePrior: 3,
+    priorRelevance: 1000000
+  };
+  var gmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options);
+  var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options2);
+  var gmm3 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options3);
+  gmm.optimize(data);
+  gmm2.optimize(data);
+  gmm3.optimize(data);
+
+  var cropFloat = function (a) { return Number(a.toFixed(1)); };
+  t.same(gmm.vars.map(cropFloat), [1.1, 2.5, 4.6]);
+  t.same(gmm2.vars.map(cropFloat), [2.7, 2.8, 3.4]);
+  t.same(gmm3.vars.map(cropFloat), [3, 3, 3]);
+});
