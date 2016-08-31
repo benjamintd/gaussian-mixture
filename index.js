@@ -160,3 +160,12 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
   }
   return i; // number of steps to reach the converged solution.
 };
+
+GMM.prototype.model = function () {
+  return {
+    nComponents: this.nComponents,
+    weights: this.weights,
+    means: this.means,
+    vars: this.vars
+  };
+};
