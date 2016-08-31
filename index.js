@@ -104,13 +104,13 @@ GMM.prototype.updateModel = function (data) {
     this.means[k] /= componentWeights[k];
   }
   // If there is a separation prior:
-  if (this.options.separationPrior && this.options.priorRelevance) {
+  if (this.options.separationPrior && this.options.separationPriorRelevance) {
     var separationPrior = this.options.separationPrior;
     var priorMeans = _.range(this.nComponents).map(function (a) { return (a * separationPrior); });
     var priorCenter = barycenter(priorMeans, this.weights);
     var center = barycenter(this.means, this.weights);
     for (k = 0; k < this.nComponents; k++) {
-      alpha = this.weights[k] / (this.weights[k] + this.options.priorRelevance);
+      alpha = this.weights[k] / (this.weights[k] + this.options.separationPriorRelevance);
       this.means[k] = center + alpha * (this.means[k] - center) + (1 - alpha) * (priorMeans[k] - priorCenter);
     }
   }
@@ -123,8 +123,8 @@ GMM.prototype.updateModel = function (data) {
     }
     this.vars[k] /= componentWeights[k];
     // If there is a variance prior:
-    if (this.options.variancePrior && this.options.priorRelevance) {
-      alpha = this.weights[k] / (this.weights[k] + this.options.priorRelevance);
+    if (this.options.variancePrior && this.options.variancePriorRelevance) {
+      alpha = this.weights[k] / (this.weights[k] + this.options.variancePriorRelevance);
       this.vars[k] = alpha * this.vars[k] + (1 - alpha) * this.options.variancePrior;
     }
   }

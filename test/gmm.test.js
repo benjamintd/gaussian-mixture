@@ -108,15 +108,15 @@ test('Variance prior', function (t) {
 
   var options = {
     variancePrior: 3,
-    priorRelevance: 0.01
+    variancePriorRelevance: 0.01
   };
   var options2 = {
     variancePrior: 3,
-    priorRelevance: 1
+    variancePriorRelevance: 1
   };
   var options3 = {
     variancePrior: 3,
-    priorRelevance: 1000000
+    variancePriorRelevance: 1000000
   };
   var gmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options);
   var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options2);
@@ -136,15 +136,15 @@ test('Separation prior', function (t) {
 
   var options = {
     separationPrior: 3,
-    priorRelevance: 0.01
+    separationPriorRelevance: 0.01
   };
   var options2 = {
     separationPrior: 3,
-    priorRelevance: 1
+    separationPriorRelevance: 1
   };
   var options3 = {
     separationPrior: 3,
-    priorRelevance: 1000000
+    separationPriorRelevance: 1000000
   };
   var gmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options);
   var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1], options2);
