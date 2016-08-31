@@ -140,7 +140,11 @@ GMM.prototype.logLikelihood = function (data) {
     for (var k = 0; k < this.nComponents; k++) {
       p += this.weights[k] * gaussians[k].pdf(data[i]);
     }
-    l += Math.log(p);
+    if (p === 0) {
+      return -Infinity;
+    } else {
+      l += Math.log(p);
+    }
   }
   return l;
 };
