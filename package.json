@@ -1,6 +1,6 @@
 {
   "name": "gaussianMixture",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "An implementation of a Gaussian Mixture class in one dimension, that allows to fit models with an Expectation Maximization algorithm.",
   "main": "index.js",
   "repository": "git@github.com:benjamintd/gaussian-mixture.git",
