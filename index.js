@@ -173,3 +173,13 @@ GMM.prototype.model = function () {
     vars: this.vars
   };
 };
+
+GMM.fromModel = function (model, options) {
+  return new GMM(
+    model.nComponents,
+    model.weights,
+    model.means,
+    model.vars,
+    options
+  );
+};
