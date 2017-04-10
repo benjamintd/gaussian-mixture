@@ -2,7 +2,6 @@
 
 // Imports
 var gaussian = require('gaussian');
-var barycenter = require('./utilities/barycenter');
 var _ = require('underscore');
 
 // Constants
@@ -135,8 +134,8 @@ GMM.prototype.updateModel = function (data, memberships) {
   if (this.options.separationPrior && this.options.separationPriorRelevance) {
     var separationPrior = this.options.separationPrior;
     var priorMeans = _.range(this.nComponents).map(function (a) { return (a * separationPrior); });
-    var priorCenter = barycenter(priorMeans, this.weights);
-    var center = barycenter(this.means, this.weights);
+    var priorCenter = GMM._barycenter(priorMeans, this.weights);
+    var center = GMM._barycenter(this.means, this.weights);
     for (k = 0; k < this.nComponents; k++) {
       alpha = this.weights[k] / (this.weights[k] + this.options.separationPriorRelevance);
       this.means[k] = center + alpha * (this.means[k] - center) + (1 - alpha) * (priorMeans[k] - priorCenter);
@@ -231,6 +230,74 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
     logLikelihood = temp;
   }
   return i;
+};
+
+/**
+ * Initialize the GMM given data with the [K-means++](https://en.wikipedia.org/wiki/K-means%2B%2B) initialization algorithm.
+ * The k-means++ algorithm choses datapoints amongst the data at random, while ensuring that the chosen seeds are far from each other.
+ * The resulting seeds are returned sorted.
+ * @param {Array} data array of numbers representing the samples to use to optimize the model
+ * @return {Array} an array of length nComponents that contains the means for the initialization.
+ * @example
+ var gmm = new GMM(3, [0.3, .04, 0.3], [1, 5, 10]);
+ var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
+ gmm.initialize(data); // updates the means of the GMM with the K-means++ initialization algorithm, returns something like [1.3, 7.4, 14.3]
+ */
+GMM.prototype.initialize = function (data) {
+  var n = data.length;
+
+  var means = [];
+
+  // Find the first seed at random
+  means.push(data[Math.round(Math.random() * n)]);
+
+  var distances = [];
+
+  // Chose all other seeds
+  for (var m = 1; m < this.nComponents; m++) {
+    // Compute the distance from each datapoint
+    var dsum = 0;
+    for (var i = 0; i < n; i++) {
+      var d = means.map(x => (x - data[i]) * (x - data[i])).reduce((a, b) => Math.min(a, b));
+      distances[i] = d;
+      dsum += d;
+    }
+
+    // Chose the next seed at random with probabilities d / dsum
+    var r = Math.random();
+    var c;
+    for (var j = 0; j < n; j++) {
+      var p = distances[j] / dsum;
+      if (p > r || j === (n - 1)) {
+        c = data[j];
+        break;
+      } else {
+        r -= p;
+        j++;
+      }
+    }
+
+    means.push(c);
+  }
+
+  this.means = means;
+  return means;
+};
+
+/** @private
+ * Compute the barycenter given an array and weights.
+ * @param {Array} array the array of values to find the barycenter from
+ * @param {Array} weights an array of same length that contains the weight for each value
+ * @return {Number} the barycenter
+ */
+GMM._barycenter = function (array, weights) {
+  var total = 0;
+  var barycenter = 0;
+  for (var i = 0, n = array.length; i < n; i++) {
+    total += weights[i];
+    barycenter += array[i] * weights[i];
+  }
+  return barycenter / total;
 };
 
 /**
