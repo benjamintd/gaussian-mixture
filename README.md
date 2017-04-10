@@ -21,6 +21,8 @@ var GMM = require('gaussianMixture');
 
 # GMM
 
+[index.js:25-36](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L25-L36 "Source code on GitHub")
+
 Instantiate a new GMM.
 
 **Parameters**
@@ -41,6 +43,8 @@ var gmm = new GMM(3, [0.3, 0.2, 0.5], [1, 2, 3], [1, 1, 0.5]);
 
 ## sample
 
+[index.js:56-70](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L56-L70 "Source code on GitHub")
+
 Randomly sample from the GMM's distribution.
 
 **Parameters**
@@ -51,25 +55,33 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## memberships
 
+[index.js:78-85](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L78-L85 "Source code on GitHub")
+
 Given an array of data, determine their memberships for each component of the GMM.
 
 **Parameters**
 
 -   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of numbers representing the samples to score under the model
+-   `gaussians` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** (optional) an Array of length nComponents that contains the gaussians for the GMM
 
 Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** (data.length \* this.nComponents) matrix with membership weights
 
 ## membership
+
+[index.js:93-104](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L93-L104 "Source code on GitHub")
 
 Given a datapoint, determine its memberships for each component of the GMM.
 
 **Parameters**
 
 -   `x` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** number representing the sample to score under the model
+-   `gaussians` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** (optional) an Array of length nComponents that contains the gaussians for the GMM
 
 Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** an array of length this.nComponents with membership weights, i.e the probabilities that this datapoint was drawn from the each component
 
 ## updateModel
+
+[index.js:112-159](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L112-L159 "Source code on GitHub")
 
 Perform one expectation-maximization step and update the GMM weights, means and variances in place.
 Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
@@ -77,18 +89,23 @@ Optionally, if options.variancePrior and options.priorRelevance are defined, mix
 **Parameters**
 
 -   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of numbers representing the samples to use to update the model
+-   `memberships` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** the memberships array for the given data (optional).
 
 ## logLikelihood
+
+[index.js:188-204](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L188-L204 "Source code on GitHub")
 
 Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of data.
 
 **Parameters**
 
--   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of numbers representing the samples to use to update the model
+-   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** the data array
 
 Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the log-likelihood
 
 ## optimize
+
+[index.js:219-234](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L219-L234 "Source code on GitHub")
 
 Compute the optimal GMM components given an array of data.
 
@@ -112,11 +129,15 @@ Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 ## model
 
+[index.js:240-247](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L240-L247 "Source code on GitHub")
+
 Return the model for the GMM as a raw JavaScript Object.
 
 Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)** the model, with keys `nComponents`, `weights`, `means`, `vars`.
 
 ## fromModel
+
+[index.js:259-267](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L259-L267 "Source code on GitHub")
 
 Instantiate a GMM from an Object model and options.
 

@@ -158,3 +158,19 @@ test('Separation prior', function (t) {
   t.same(gmm2.means.map(cropFloat), [11.6, 13.5, 17.8]);
   t.same(gmm3.means.map(cropFloat), [11.4, 14.4, 17.4]);
 });
+
+test('Model', function (t) {
+  t.plan(2);
+
+  var gmm = new GMM(3, [0.4, 0.2, 0.4], [-1, 13, 25], [1, 2, 1]);
+
+  var model = {
+    nComponents: 3,
+    weights: [0.4, 0.2, 0.4],
+    means: [-1, 13, 25],
+    vars: [1, 2, 1]
+  };
+
+  t.same(gmm.model(), model);
+  t.same(GMM.fromModel(model), gmm);
+});

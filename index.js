@@ -72,12 +72,14 @@ GMM.prototype.sample = function (nSamples) {
 /**
  * Given an array of data, determine their memberships for each component of the GMM.
  * @param {Array} data array of numbers representing the samples to score under the model
+ * @param {Array} gaussians (optional) an Array of length nComponents that contains the gaussians for the GMM
  * @return {Array} (data.length * this.nComponents) matrix with membership weights
  */
-GMM.prototype.memberships = function (data) {
+GMM.prototype.memberships = function (data, gaussians) {
   var memberships = [];
+  if (!gaussians) gaussians = this._gaussians();
   for (var i = 0, n = data.length; i < n; i++) {
-    memberships.push(this.membership(data[i]));
+    memberships.push(this.membership(data[i], gaussians));
   }
   return memberships;
 };
@@ -85,15 +87,19 @@ GMM.prototype.memberships = function (data) {
 /**
  * Given a datapoint, determine its memberships for each component of the GMM.
  * @param {Number} x number representing the sample to score under the model
+ * @param {Array} gaussians (optional) an Array of length nComponents that contains the gaussians for the GMM
  * @return {Array} an array of length this.nComponents with membership weights, i.e the probabilities that this datapoint was drawn from the each component
  */
-GMM.prototype.membership = function (x) {
+GMM.prototype.membership = function (x, gaussians) {
   var membership = [];
-  var gaussians = this._gaussians();
+  if (!gaussians) gaussians = this._gaussians();
+  var sum = 0;
   for (var i = 0; i < this.nComponents; i++) {
-    membership.push(gaussians[i].pdf(x));
+    var m = gaussians[i].pdf(x);
+    membership.push(m);
+    sum += m;
   }
-  var sum = membership.reduce(function (a, b) { return a + b; });
+
   return membership.map(function (a) { return a / sum; });
 };
 
@@ -101,11 +107,12 @@ GMM.prototype.membership = function (x) {
  * Perform one expectation-maximization step and update the GMM weights, means and variances in place.
  * Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
  * @param {Array} data array of numbers representing the samples to use to update the model
+ * @param {Array} memberships the memberships array for the given data (optional).
  */
-GMM.prototype.updateModel = function (data) {
+GMM.prototype.updateModel = function (data, memberships) {
   // First, we compute the data memberships.
   var n = data.length;
-  var memberships = this.memberships(data);
+  if (!memberships) memberships = this.memberships(data);
   var alpha;
 
   // Update the mixture weights
@@ -140,7 +147,7 @@ GMM.prototype.updateModel = function (data) {
   for (k = 0; k < this.nComponents; k++) {
     this.vars[k] = 0;
     for (i = 0; i < n; i++) {
-      this.vars[k] += memberships[i][k] * Math.pow(data[i] - this.means[k], 2);
+      this.vars[k] += memberships[i][k] * (data[i] - this.means[k]) * (data[i] - this.means[k]);
     }
     this.vars[k] /= componentWeights[k];
     // If there is a variance prior:
@@ -151,13 +158,34 @@ GMM.prototype.updateModel = function (data) {
   }
 };
 
+/** @private
+ * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of memberships.
+ * @param {Array} memberships the memberships array, matrix of size n * this.nComponents, where n is the size of the data.
+ * @return {Number} the log-likelihood
+ */
+GMM.prototype._logLikelihoodMemberships = function (memberships) {
+  var l = 0;
+  var p = 0;
+  for (var i = 0, n = memberships.length; i < n; i++) {
+    p = 0;
+    for (var k = 0; k < this.nComponents; k++) {
+      p += this.weights[k] * memberships[i][k];
+    }
+    if (p === 0) {
+      return -Infinity;
+    } else {
+      l += Math.log(p);
+    }
+  }
+  return l;
+};
+
 /**
  * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of data.
- * @param {Array} data array of numbers representing the samples to use to update the model
+ * @param {Array} data the data array
  * @return {Number} the log-likelihood
  */
 GMM.prototype.logLikelihood = function (data) {
-  // data: array of floats representing the samples to compute the log-likelihood with.
   var l = 0;
   var p = 0;
   var gaussians = this._gaussians();
@@ -194,9 +222,11 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
   var logLikelihoodDiff = Infinity;
   var logLikelihood = -Infinity;
   var temp;
+  var memberships;
   for (var i = 0; i < maxIterations && logLikelihoodDiff > logLikelihoodTol; i++) {
-    this.updateModel(data);
-    temp = this.logLikelihood(data);
+    this.updateModel(data, memberships);
+    memberships = this.memberships(data);
+    temp = this._logLikelihoodMemberships(memberships);
     logLikelihoodDiff = Math.abs(logLikelihood - temp);
     logLikelihood = temp;
   }
