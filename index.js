@@ -144,7 +144,7 @@ GMM.prototype.updateModel = function (data, memberships) {
 
   // Update the mixture variances
   for (k = 0; k < this.nComponents; k++) {
-    this.vars[k] = 0;
+    this.vars[k] = LOG_LIKELIHOOD_TOL; // initialize to some epsilon to avoid zero variance problems.
     for (i = 0; i < n; i++) {
       this.vars[k] += memberships[i][k] * (data[i] - this.means[k]) * (data[i] - this.means[k]);
     }
@@ -216,6 +216,8 @@ GMM.prototype.logLikelihood = function (data) {
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]
  */
 GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
+  if (this.options.initialize) this.initialize(data);
+
   maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
   logLikelihoodTol = logLikelihoodTol === undefined ? LOG_LIKELIHOOD_TOL : logLikelihoodTol;
   var logLikelihoodDiff = Infinity;
@@ -246,10 +248,12 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
 GMM.prototype.initialize = function (data) {
   var n = data.length;
 
+  if (n < this.nComponents) throw new Error('Data must have more points than the number of components in the model.');
+
   var means = [];
 
   // Find the first seed at random
-  means.push(data[Math.round(Math.random() * n)]);
+  means.push(data[Math.round(Math.random() * (n - 1))]);
 
   var distances = [];
 
@@ -258,7 +262,8 @@ GMM.prototype.initialize = function (data) {
     // Compute the distance from each datapoint
     var dsum = 0;
     for (var i = 0; i < n; i++) {
-      var d = means.map(x => (x - data[i]) * (x - data[i])).reduce((a, b) => Math.min(a, b));
+      var meansDistances = means.map(function (x) { return (x - data[i]) * (x - data[i]); });
+      var d = meansDistances.reduce(function (a, b) { return Math.min(a, b); });
       distances[i] = d;
       dsum += d;
     }
@@ -267,19 +272,19 @@ GMM.prototype.initialize = function (data) {
     var r = Math.random();
     var c;
     for (var j = 0; j < n; j++) {
-      var p = distances[j] / dsum;
+      var p = (distances[j] / dsum) || 0;
       if (p > r || j === (n - 1)) {
         c = data[j];
         break;
       } else {
         r -= p;
-        j++;
       }
     }
 
     means.push(c);
   }
 
+  means.sort(function (a, b) { return a - b; });
   this.means = means;
   return means;
 };

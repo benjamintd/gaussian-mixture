@@ -85,7 +85,7 @@ test('log likelihood function', function (t) {
 });
 
 test('EM full optimization', function (t) {
-  t.plan(10);
+  t.plan(11);
 
   var gmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1]);
   var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1]);
@@ -101,6 +101,10 @@ test('EM full optimization', function (t) {
     t.equals(Math.abs(gmm.means[j] - gmm2.means[j]) < 1e-7, true);
     t.equals(Math.abs(gmm.vars[j] - gmm2.vars[j]) < 1e-7, true);
   }
+
+  var gmm3 = new GMM(3, [0.4, 0.3, 0.4], [-10, -5, -1], [1, 1, 1], {initialize: true});
+  gmm3.optimize([1, 2, 3, 1, 2, 3, 1, 1, 2, 2, 3, 3]);
+  t.same(gmm3.means, [1, 2, 3]);
 });
 
 test('Variance prior', function (t) {
@@ -183,4 +187,18 @@ test('Barycenter method', function (t) {
   t.equals(GMM._barycenter([1, 2, 3], [0.3, 0.4, 0.3]), 2);
   t.equals(GMM._barycenter([1, 2, 3], [3, 4, 3]), 2);
   t.equals(GMM._barycenter([1, 2, 3], [0, 0, 0.01]), 3);
+});
+
+test('Km++ Initialization', function (t) {
+  var gmm = new GMM(3, [0.4, 0.2, 0.4], [-1, 13, 25], [1, 2, 1]);
+
+  var means = gmm.initialize([1, 3, 3, 3, 2, 2, 1, 1, 3, 2, 2, 1, 3, 3, 3, 2, 1]);
+  t.same(means, [1, 2, 3]);
+
+  t.same(gmm.initialize([1, 1, 1, 1]), [1, 1, 1]);
+  t.same(gmm.initialize([1, 1, 1, 2, 17]), [1, 2, 17]);
+
+  t.throws(function () { gmm.initialize([1]); }, new Error('Data must have more points than the number of components in the model.'));
+
+  t.end();
 });
