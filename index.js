@@ -204,13 +204,16 @@ GMM.prototype.logLikelihood = function (data) {
 
 /**
  * Compute the optimal GMM components given an array of data.
+ * If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
+ * This allows to have a data-dependent initialization and should converge quicker and to a better model.
+ * The initialization is agnostic to the other priors that the options might contain.
  * @param {Array} data array of numbers representing the samples to use to optimize the model
  * @param {Number} [maxIterations=200] maximum number of expectation-maximization steps
  * @param {Number} [logLikelihoodTol=0.0000001] tolerance for the log-likelihood
  * to determine if we reached the optimum
  * @return {Number} the number of steps to reach the converged solution
  * @example
- var gmm = new GMM(3, undefined, [1, 5, 10]);
+ var gmm = new GMM(3, undefined, [1, 5, 10], {initialize: true});
  var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
  gmm.optimize(data); // updates weights, means and variances with the EM algorithm given the data.
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]

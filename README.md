@@ -21,7 +21,7 @@ var GMM = require('gaussianMixture');
 
 # GMM
 
-[index.js:25-36](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L25-L36 "Source code on GitHub")
+[index.js:24-35](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L24-L35 "Source code on GitHub")
 
 Instantiate a new GMM.
 
@@ -43,7 +43,7 @@ var gmm = new GMM(3, [0.3, 0.2, 0.5], [1, 2, 3], [1, 1, 0.5]);
 
 ## sample
 
-[index.js:56-70](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L56-L70 "Source code on GitHub")
+[index.js:55-69](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L55-L69 "Source code on GitHub")
 
 Randomly sample from the GMM's distribution.
 
@@ -55,7 +55,7 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## memberships
 
-[index.js:78-85](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L78-L85 "Source code on GitHub")
+[index.js:77-84](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L77-L84 "Source code on GitHub")
 
 Given an array of data, determine their memberships for each component of the GMM.
 
@@ -68,7 +68,7 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## membership
 
-[index.js:93-104](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L93-L104 "Source code on GitHub")
+[index.js:92-103](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L92-L103 "Source code on GitHub")
 
 Given a datapoint, determine its memberships for each component of the GMM.
 
@@ -81,7 +81,7 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## updateModel
 
-[index.js:112-159](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L112-L159 "Source code on GitHub")
+[index.js:111-158](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L111-L158 "Source code on GitHub")
 
 Perform one expectation-maximization step and update the GMM weights, means and variances in place.
 Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
@@ -93,7 +93,7 @@ Optionally, if options.variancePrior and options.priorRelevance are defined, mix
 
 ## logLikelihood
 
-[index.js:188-204](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L188-L204 "Source code on GitHub")
+[index.js:187-203](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L187-L203 "Source code on GitHub")
 
 Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of data.
 
@@ -105,9 +105,12 @@ Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 ## optimize
 
-[index.js:219-234](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L219-L234 "Source code on GitHub")
+[index.js:221-238](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L221-L238 "Source code on GitHub")
 
 Compute the optimal GMM components given an array of data.
+If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
+This allows to have a data-dependent initialization and should converge quicker and to a better model.
+The initialization is agnostic to the other priors that the options might contain.
 
 **Parameters**
 
@@ -119,7 +122,7 @@ Compute the optimal GMM components given an array of data.
 **Examples**
 
 ```javascript
-var gmm = new GMM(3, undefined, [1, 5, 10]);
+var gmm = new GMM(3, undefined, [1, 5, 10], {initialize: true});
 var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
 gmm.optimize(data); // updates weights, means and variances with the EM algorithm given the data.
 console.log(gmm.means); // >> [1.225, 7.3, 14.8]
@@ -127,9 +130,31 @@ console.log(gmm.means); // >> [1.225, 7.3, 14.8]
 
 Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the number of steps to reach the converged solution
 
+## initialize
+
+[index.js:251-293](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L251-L293 "Source code on GitHub")
+
+Initialize the GMM given data with the [K-means++](https://en.wikipedia.org/wiki/K-means%2B%2B) initialization algorithm.
+The k-means++ algorithm choses datapoints amongst the data at random, while ensuring that the chosen seeds are far from each other.
+The resulting seeds are returned sorted.
+
+**Parameters**
+
+-   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of numbers representing the samples to use to optimize the model
+
+**Examples**
+
+```javascript
+var gmm = new GMM(3, [0.3, .04, 0.3], [1, 5, 10]);
+var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
+gmm.initialize(data); // updates the means of the GMM with the K-means++ initialization algorithm, returns something like [1.3, 7.4, 14.3]
+```
+
+Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** an array of length nComponents that contains the means for the initialization.
+
 ## model
 
-[index.js:240-247](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L240-L247 "Source code on GitHub")
+[index.js:315-322](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L315-L322 "Source code on GitHub")
 
 Return the model for the GMM as a raw JavaScript Object.
 
@@ -137,7 +162,7 @@ Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 ## fromModel
 
-[index.js:259-267](https://github.com/benjamintd/gaussian-mixture/blob/0d4e990bd0b561e80b19920d999d6cbac0763ff8/index.js#L259-L267 "Source code on GitHub")
+[index.js:334-342](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L334-L342 "Source code on GitHub")
 
 Instantiate a GMM from an Object model and options.
 
