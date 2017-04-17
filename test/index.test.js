@@ -4,6 +4,7 @@ var test = require('tap').test;
 var data = require('./fixtures/data.json'); // 200 samples from refGmm
 
 var GMM = require('../index');
+var Histogram = require('../index').Histogram;
 
 test('Initialization of a new GMM object.', function (t) {
   t.plan(2);
@@ -200,5 +201,38 @@ test('Km++ Initialization', function (t) {
 
   t.throws(function () { gmm.initialize([1]); }, new Error('Data must have more points than the number of components in the model.'));
 
+  t.end();
+});
+
+test('memberships histogram', function (t) {
+  var h = Histogram.fromData([1, 2, 5, 5.4, 5.5, 6, 7, 7]);
+  var gmm = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+
+  t.same(gmm.membershipsHistogram(h), {
+    1: [0.9818947940807183, 0.01798403047511045, 0.00012117544417123207],
+    2: [0.8788782427321509, 0.11894323591065209, 0.0021785213571970234],
+    5: [0.013212886953789417, 0.7213991842739687, 0.265387928772242],
+    6: [0.0012378419366357771, 0.49938107903168216, 0.49938107903168216],
+    7: [0.00009021165708731931, 0.268917159718714, 0.7309926286241988]
+  });
+
+  t.end();
+});
+
+test('log likelihood - histogram', function (t) {
+  var h = Histogram.fromData([1, 2, 5, 5, 5, 6, 7, 7]);
+  var gmm = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+
+  t.equal(gmm.logLikelihoodHistogram(h), gmm.logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
   t.end();
 });

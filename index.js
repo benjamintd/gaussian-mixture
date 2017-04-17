@@ -86,6 +86,28 @@ GMM.prototype.memberships = function (data, gaussians) {
 };
 
 /**
+ * Given a histogram, determine the membership for each bin and for each component of the GMM.
+ * @param {Histogram} h histogram representing the data to find memberships for.
+ * @param {Array} gaussians (optional) an Array of length nComponents that contains the gaussians for the GMM
+ * @return {Object} a hash from key to memberships, where values are {Array} of length nComponents that sum to 1.
+ */
+GMM.prototype.membershipsHistogram = function (h, gaussians) {
+  var memberships = {};
+  if (!gaussians) gaussians = this._gaussians();
+
+  var keys = Object.keys(h.counts);
+
+  for (var i = 0, n = keys.length; i < n; i++) {
+    var k = keys[i];
+    var v = h.value(k);
+
+    memberships[k] = this.membership(v, gaussians);
+  }
+
+  return memberships;
+};
+
+/**
  * Given a datapoint, determine its memberships for each component of the GMM.
  * @param {Number} x number representing the sample to score under the model
  * @param {Array} gaussians (optional) an Array of length nComponents that contains the gaussians for the GMM
@@ -119,15 +141,15 @@ GMM.prototype.updateModel = function (data, memberships) {
   // Update the mixture weights
   var componentWeights = [];
   var reduceFunction = function (k) { return function (a, b) { return (a + b[k]); }; };
-  for (var k = 0; k < this.nComponents; k++) {
+  for (let k = 0; k < this.nComponents; k++) {
     componentWeights[k] = memberships.reduce(reduceFunction(k), 0);
   }
   this.weights = componentWeights.map(function (a) { return a / n; });
 
   // Update the mixture means
-  for (k = 0; k < this.nComponents; k++) {
+  for (let k = 0; k < this.nComponents; k++) {
     this.means[k] = 0;
-    for (var i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
       this.means[k] += memberships[i][k] * data[i];
     }
     this.means[k] /= componentWeights[k];
@@ -138,17 +160,80 @@ GMM.prototype.updateModel = function (data, memberships) {
     var priorMeans = _.range(this.nComponents).map(function (a) { return (a * separationPrior); });
     var priorCenter = GMM._barycenter(priorMeans, this.weights);
     var center = GMM._barycenter(this.means, this.weights);
-    for (k = 0; k < this.nComponents; k++) {
+    for (let k = 0; k < this.nComponents; k++) {
       alpha = this.weights[k] / (this.weights[k] + this.options.separationPriorRelevance);
       this.means[k] = center + alpha * (this.means[k] - center) + (1 - alpha) * (priorMeans[k] - priorCenter);
     }
   }
 
   // Update the mixture variances
-  for (k = 0; k < this.nComponents; k++) {
+  for (let k = 0; k < this.nComponents; k++) {
     this.vars[k] = EPSILON; // initialize to some epsilon to avoid zero variance problems.
-    for (i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
       this.vars[k] += memberships[i][k] * (data[i] - this.means[k]) * (data[i] - this.means[k]);
+    }
+    this.vars[k] /= componentWeights[k];
+    // If there is a variance prior:
+    if (this.options.variancePrior && this.options.variancePriorRelevance) {
+      alpha = this.weights[k] / (this.weights[k] + this.options.variancePriorRelevance);
+      this.vars[k] = alpha * this.vars[k] + (1 - alpha) * this.options.variancePrior;
+    }
+  }
+};
+
+/**
+ * Perform one expectation-maximization step and update the GMM weights, means and variances in place.
+ * Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
+ * @param {Histogram} h histogram representing the data.
+ * @param {Array} memberships the memberships object for the given histogram (optional).
+ */
+GMM.prototype.updateModelHistogram = function (h, memberships) {
+  // First, we compute the data memberships.
+  var n = h.total;
+  if (!memberships) memberships = this.membershipsHistogram(h);
+  var alpha;
+
+  var keys = Object.keys(h.counts);
+
+  // Update the mixture weights
+  var componentWeights = [];
+  var reduceFunction = function (k) { return function (a, b) { return (a + memberships[b][k]); }; };
+  for (let k = 0; k < this.nComponents; k++) {
+    componentWeights[k] = keys.reduce(reduceFunction(k), 0);
+  }
+  this.weights = componentWeights.map(function (a) { return a / n; });
+
+  // Update the mixture means
+  for (let k = 0; k < this.nComponents; k++) {
+    this.means[k] = 0;
+    for (let i = 0; i < keys.length; i++) {
+      let key = keys[i];
+      let v = h.value(key);
+
+      this.means[k] += memberships[key][k] * v * h.counts[key];
+    }
+    this.means[k] /= componentWeights[k];
+  }
+
+  // If there is a separation prior:
+  if (this.options.separationPrior && this.options.separationPriorRelevance) {
+    var separationPrior = this.options.separationPrior;
+    var priorMeans = _.range(this.nComponents).map(function (a) { return (a * separationPrior); });
+    var priorCenter = GMM._barycenter(priorMeans, this.weights);
+    var center = GMM._barycenter(this.means, this.weights);
+    for (let k = 0; k < this.nComponents; k++) {
+      alpha = this.weights[k] / (this.weights[k] + this.options.separationPriorRelevance);
+      this.means[k] = center + alpha * (this.means[k] - center) + (1 - alpha) * (priorMeans[k] - priorCenter);
+    }
+  }
+
+  // Update the mixture variances
+  for (let k = 0; k < this.nComponents; k++) {
+    this.vars[k] = EPSILON; // initialize to some epsilon to avoid zero variance problems.
+    for (let i = 0; i < keys.length; i++) {
+      let key = keys[i];
+      let v = h.value(key);
+      this.vars[k] += memberships[key][k] * (v - this.means[k]) * (v - this.means[k]) * h.counts[key];
     }
     this.vars[k] /= componentWeights[k];
     // If there is a variance prior:
@@ -166,9 +251,9 @@ GMM.prototype.updateModel = function (data, memberships) {
  */
 GMM.prototype._logLikelihoodMemberships = function (memberships) {
   var l = 0;
-  var p = 0;
+
   for (var i = 0, n = memberships.length; i < n; i++) {
-    p = 0;
+    var p = 0;
     for (var k = 0; k < this.nComponents; k++) {
       p += this.weights[k] * memberships[i][k];
     }
@@ -205,6 +290,42 @@ GMM.prototype.logLikelihood = function (data) {
 };
 
 /**
+ * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given a histogram.
+ * @param {Histogram} h the data histogram
+ * @return {Number} the log-likelihood
+ */
+GMM.prototype.logLikelihoodHistogram = function (h) {
+  var l = 0;
+  var p = 0;
+  var gaussians = this._gaussians();
+
+  var keys = Object.keys(h.counts);
+
+  for (var i = 0, n = keys.length; i < n; i++) {
+    p = 0;
+    let key = keys[i];
+    let v;
+
+    if (h.bins && h.bins[key]) {
+      v = (h.bins[key][0] + h.bins[key][1]) / 2;
+    } else {
+      v = Number(keys[i]);
+    }
+
+    for (var k = 0; k < this.nComponents; k++) {
+      p += this.weights[k] * gaussians[k].pdf(v);
+    }
+
+    if (p === 0) {
+      return -Infinity;
+    } else {
+      l += Math.log(p) * h.counts[key];
+    }
+  }
+  return l;
+};
+
+/**
  * Compute the optimal GMM components given an array of data.
  * If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
  * This allows to have a data-dependent initialization and should converge quicker and to a better model.
@@ -215,7 +336,7 @@ GMM.prototype.logLikelihood = function (data) {
  * to determine if we reached the optimum
  * @return {Number} the number of steps to reach the converged solution
  * @example
- var gmm = new GMM(3, undefined, [1, 5, 10], {initialize: true});
+ var gmm = new GMM(3, undefined, [1, 5, 10], [1, 1, 1], {initialize: true});
  var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
  gmm.optimize(data); // updates weights, means and variances with the EM algorithm given the data.
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]
@@ -238,6 +359,35 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
   }
   return i;
 };
+
+/**
+ * Compute the optimal GMM components given a histogram of data.
+ * @param {Histogram} h histogram of data used to optimize the model
+ * @param {Number} [maxIterations=200] maximum number of expectation-maximization steps
+ * @param {Number} [logLikelihoodTol=0.0000001] tolerance for the log-likelihood
+ * to determine if we reached the optimum
+ * @return {Number} the number of steps to reach the converged solution
+ * @example
+ var gmm = new GMM(3, undefined, [1, 5, 10], [1, 1, 1]);
+ var h = Histogram.fromData([1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2]);
+ gmm.optimizeHistogram(h); // updates weights, means and variances with the EM algorithm given the data.
+ console.log(gmm.means); // >> [1.225, 7.3, 14.8]
+ */
+GMM.prototype.optimizeHistogram = function (h, maxIterations, logLikelihoodTol) {
+  maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
+  logLikelihoodTol = logLikelihoodTol === undefined ? EPSILON : logLikelihoodTol;
+  var logLikelihoodDiff = Infinity;
+  var logLikelihood = -Infinity;
+  var temp;
+  for (var i = 0; i < maxIterations && logLikelihoodDiff > logLikelihoodTol; i++) {
+    this.updateModelHistogram(h);
+    temp = this.logLikelihoodHistogram(h);
+    logLikelihoodDiff = Math.abs(logLikelihood - temp);
+    logLikelihood = temp;
+  }
+  return i;
+};
+
 
 /**
  * Initialize the GMM given data with the [K-means++](https://en.wikipedia.org/wiki/K-means%2B%2B) initialization algorithm.
@@ -346,13 +496,14 @@ GMM.fromModel = function (model, options) {
 /**
  * Instantiate a new Histogram.
  * @param {Object} [h={}] an object with keys 'counts' and 'bins'. Both are optional.
- * @returns {Histogram} a histogram object
+ * @return {Histogram} a histogram object
  * It has keys 'bins' (possibly null) and 'counts'.
  */
 function Histogram(h) {
   h = h || {};
   this.bins = h.bins || null;
   this.counts = h.counts || {};
+  this.total = Histogram._total(h);
 }
 
 /** @private
@@ -361,7 +512,7 @@ function Histogram(h) {
  * @param {Object} [bins=undefined] a map from key to range (a range being an array of two elements)
  * An observation x will be counted for the key i if `bins[i][0] <= x < bins[i][1]`.
  * If not specified, the bins will be corresponding to one unit in the scale of the data.
- * @returns {String} the key to add the observation in the histogram
+ * @return {String} the key to add the observation in the histogram
  */
 Histogram._classify = function (x, bins) {
   if (bins === null || bins === undefined) return Math.round(x).toString();
@@ -376,16 +527,29 @@ Histogram._classify = function (x, bins) {
   return null;
 };
 
+/** @private
+ * Get the total count for the histogram
+ * @param {Histogram} h a histogram
+ * @return {Number} the total count for the histogram
+ */
+Histogram._total = function (h) {
+  return Object.keys(h.counts)
+    .map(function (k) { return h.counts[k]; })
+    .reduce(function (a, b) { return a + b; }, 0);
+};
+
 /**
  * Add an observation to an histogram.
  * @param {Array} x observation to add tos the histogram
- * @returns {Histogram} the histogram with added value.
+ * @return {Histogram} the histogram with added value.
  */
 Histogram.prototype.add = function (x) {
   var c = Histogram._classify(x, this.bins);
   if (c !== null) {
     if (!this.counts[c]) this.counts[c] = 1;
     else this.counts[c] += 1;
+
+    this.total += 1;
   }
 
   return this;
@@ -393,7 +557,7 @@ Histogram.prototype.add = function (x) {
 
 /**
  * Return a data array from a histogram.
- * @returns {Array} an array of observations derived from the histogram counts.
+ * @return {Array} an array of observations derived from the histogram counts.
  */
 Histogram.prototype.flatten = function () {
   var r = [];
@@ -424,7 +588,7 @@ Histogram.prototype.flatten = function () {
  * @param {Object} [bins={}] a map from key to range (a range being an array of two elements)
  * An observation x will be counted for the key i if `bins[i][0] <= x < bins[i][1]`.
  * If not specified, the bins will be corresponding to one unit in the scale of the data.
- * @returns {Histogram} a histogram object
+ * @return {Histogram} a histogram object
  * It has keys 'bins' (possibly null) and 'counts'.
  * @example var h = new Histogram([1, 2, 2, 2, 5, 5], {A: [0, 1], B: [1, 5], C: [5, 10]});
  // {bins: {A: [0, 1], B: [1, 5], C: [5, 10]}, counts: {A: 0, B: 4, C: 2}}
@@ -439,4 +603,16 @@ Histogram.fromData = function (data, bins) {
   }
 
   return h;
+};
+
+/**
+ * Return the median value for the given key, derived from the bins.
+ * @return {Number} the value for the provided key.
+ */
+Histogram.prototype.value = function (key) {
+  if (this.bins && this.bins[key]) {
+    return (this.bins[key][0] + this.bins[key][1]) / 2;
+  } else {
+    return Number(key);
+  }
 };
