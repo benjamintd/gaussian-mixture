@@ -6,9 +6,10 @@ var _ = require('underscore');
 
 // Constants
 var MAX_ITERATIONS = 200;
-var LOG_LIKELIHOOD_TOL = 1e-7;
+var EPSILON = 1e-7;
 
 module.exports = GMM;
+module.exports.Histogram = Histogram;
 
 /**
  * Instantiate a new GMM.
@@ -19,6 +20,7 @@ module.exports = GMM;
  * @param {Object} options an object that can define the `variancePrior`, `separationPrior`, `variancePriorRelevance` and `separationPriorRelevance`.
  * The priors are taken into account when the GMM is optimized given some data. The relevance parameters should be non-negative numbers,
  * 1 meaning that the prior has equal weight as the result of the optimal GMM in each EM step, 0 meaning no influence, and Infinity means a fixed variance (resp. separation).
+ * @return {GMM} a gmm object
  * @example var gmm = new GMM(3, [0.3, 0.2, 0.5], [1, 2, 3], [1, 1, 0.5]);
  */
 function GMM(nComponents, weights, means, vars, options) {
@@ -144,7 +146,7 @@ GMM.prototype.updateModel = function (data, memberships) {
 
   // Update the mixture variances
   for (k = 0; k < this.nComponents; k++) {
-    this.vars[k] = LOG_LIKELIHOOD_TOL; // initialize to some epsilon to avoid zero variance problems.
+    this.vars[k] = EPSILON; // initialize to some epsilon to avoid zero variance problems.
     for (i = 0; i < n; i++) {
       this.vars[k] += memberships[i][k] * (data[i] - this.means[k]) * (data[i] - this.means[k]);
     }
@@ -222,7 +224,7 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
   if (this.options.initialize) this.initialize(data);
 
   maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
-  logLikelihoodTol = logLikelihoodTol === undefined ? LOG_LIKELIHOOD_TOL : logLikelihoodTol;
+  logLikelihoodTol = logLikelihoodTol === undefined ? EPSILON : logLikelihoodTol;
   var logLikelihoodDiff = Infinity;
   var logLikelihood = -Infinity;
   var temp;
@@ -339,4 +341,102 @@ GMM.fromModel = function (model, options) {
     model.vars,
     options
   );
+};
+
+/**
+ * Instantiate a new Histogram.
+ * @param {Object} [h={}] an object with keys 'counts' and 'bins'. Both are optional.
+ * @returns {Histogram} a histogram object
+ * It has keys 'bins' (possibly null) and 'counts'.
+ */
+function Histogram(h) {
+  h = h || {};
+  this.bins = h.bins || null;
+  this.counts = h.counts || {};
+}
+
+/** @private
+ * Get the key corresponding to a single element.
+ * @param {Array} x observation to classify in the histogram
+ * @param {Object} [bins=undefined] a map from key to range (a range being an array of two elements)
+ * An observation x will be counted for the key i if `bins[i][0] <= x < bins[i][1]`.
+ * If not specified, the bins will be corresponding to one unit in the scale of the data.
+ * @returns {String} the key to add the observation in the histogram
+ */
+Histogram._classify = function (x, bins) {
+  if (bins === null || bins === undefined) return Math.round(x).toString();
+
+  var keys = Object.keys(bins);
+
+  for (var i = 0, n = keys.length; i < n; i++) {
+    var bounds = bins[keys[i]];
+    if (bounds[0] <= x && x < bounds[1]) return keys[i];
+  }
+
+  return null;
+};
+
+/**
+ * Add an observation to an histogram.
+ * @param {Array} x observation to add tos the histogram
+ * @returns {Histogram} the histogram with added value.
+ */
+Histogram.prototype.add = function (x) {
+  var c = Histogram._classify(x, this.bins);
+  if (c !== null) {
+    if (!this.counts[c]) this.counts[c] = 1;
+    else this.counts[c] += 1;
+  }
+
+  return this;
+};
+
+/**
+ * Return a data array from a histogram.
+ * @returns {Array} an array of observations derived from the histogram counts.
+ */
+Histogram.prototype.flatten = function () {
+  var r = [];
+
+  var keys = Object.keys(this.counts);
+
+  for (var i = 0, n = keys.length; i < n; i++) {
+    var k = keys[i];
+    var v;
+    if (this.bins && this.bins[k]) {
+      v = (this.bins[k][0] + this.bins[k][1]) / 2;
+    } else {
+      v = Number(keys[i]);
+    }
+
+    for (var j = 0; j < this.counts[k]; j++) {
+      r.push(v);
+    }
+  }
+
+  return r;
+};
+
+/**
+ * Instantiate a new Histogram.
+ * @param {Array} [data=[]] array of observations to include in the histogram.
+ * Observations that do not correspond to any bin will be discarded.
+ * @param {Object} [bins={}] a map from key to range (a range being an array of two elements)
+ * An observation x will be counted for the key i if `bins[i][0] <= x < bins[i][1]`.
+ * If not specified, the bins will be corresponding to one unit in the scale of the data.
+ * @returns {Histogram} a histogram object
+ * It has keys 'bins' (possibly null) and 'counts'.
+ * @example var h = new Histogram([1, 2, 2, 2, 5, 5], {A: [0, 1], B: [1, 5], C: [5, 10]});
+ // {bins: {A: [0, 1], B: [1, 5], C: [5, 10]}, counts: {A: 0, B: 4, C: 2}}
+ * @example var h = new Histogram([1, 2, 2, 2, 2.4, 2.5, 5, 5]);
+ // {counts: {'1': 1, '2': 4, '3': 1, '5': 2}}
+ */
+Histogram.fromData = function (data, bins) {
+  var h = new Histogram({bins: bins, counts: {}});
+
+  for (var i = 0, n = data.length; i < n; i++) {
+    h.add(data[i]);
+  }
+
+  return h;
 };
