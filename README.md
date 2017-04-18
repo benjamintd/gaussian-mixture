@@ -21,7 +21,7 @@ var GMM = require('gaussianMixture');
 
 # GMM
 
-[index.js:24-35](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L24-L35 "Source code on GitHub")
+[index.js:26-37](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L26-L37 "Source code on GitHub")
 
 Instantiate a new GMM.
 
@@ -41,9 +41,11 @@ Instantiate a new GMM.
 var gmm = new GMM(3, [0.3, 0.2, 0.5], [1, 2, 3], [1, 1, 0.5]);
 ```
 
+Returns **[GMM](#gmm)** a gmm object
+
 ## sample
 
-[index.js:55-69](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L55-L69 "Source code on GitHub")
+[index.js:57-71](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L57-L71 "Source code on GitHub")
 
 Randomly sample from the GMM's distribution.
 
@@ -55,7 +57,7 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## memberships
 
-[index.js:77-84](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L77-L84 "Source code on GitHub")
+[index.js:79-86](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L79-L86 "Source code on GitHub")
 
 Given an array of data, determine their memberships for each component of the GMM.
 
@@ -68,7 +70,7 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## membership
 
-[index.js:92-103](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L92-L103 "Source code on GitHub")
+[index.js:116-127](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L116-L127 "Source code on GitHub")
 
 Given a datapoint, determine its memberships for each component of the GMM.
 
@@ -79,60 +81,40 @@ Given a datapoint, determine its memberships for each component of the GMM.
 
 Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** an array of length this.nComponents with membership weights, i.e the probabilities that this datapoint was drawn from the each component
 
-## updateModel
-
-[index.js:111-158](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L111-L158 "Source code on GitHub")
-
-Perform one expectation-maximization step and update the GMM weights, means and variances in place.
-Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
-
-**Parameters**
-
--   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of numbers representing the samples to use to update the model
--   `memberships` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** the memberships array for the given data (optional).
-
 ## logLikelihood
 
-[index.js:187-203](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L187-L203 "Source code on GitHub")
+[index.js:252-257](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L252-L257 "Source code on GitHub")
 
-Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of data.
+Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given data.
 
 **Parameters**
 
--   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** the data array
+-   `data` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) \| [Histogram](#histogram))** the data array or histogram
 
 Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the log-likelihood
 
 ## optimize
 
-[index.js:221-238](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L221-L238 "Source code on GitHub")
+[index.js:345-350](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L345-L350 "Source code on GitHub")
 
 Compute the optimal GMM components given an array of data.
 If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
 This allows to have a data-dependent initialization and should converge quicker and to a better model.
 The initialization is agnostic to the other priors that the options might contain.
+The `initialize` flag is unavailable with the histogram version of this function
 
 **Parameters**
 
--   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of numbers representing the samples to use to optimize the model
+-   `data` **([Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array) \| [Histogram](#histogram))** the data array or histogram
 -   `maxIterations` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)?** maximum number of expectation-maximization steps (optional, default `200`)
 -   `logLikelihoodTol` **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)?** tolerance for the log-likelihood
     to determine if we reached the optimum (optional, default `0.0000001`)
-
-**Examples**
-
-```javascript
-var gmm = new GMM(3, undefined, [1, 5, 10], {initialize: true});
-var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
-gmm.optimize(data); // updates weights, means and variances with the EM algorithm given the data.
-console.log(gmm.means); // >> [1.225, 7.3, 14.8]
-```
 
 Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the number of steps to reach the converged solution
 
 ## initialize
 
-[index.js:251-293](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L251-L293 "Source code on GitHub")
+[index.js:428-470](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L428-L470 "Source code on GitHub")
 
 Initialize the GMM given data with the [K-means++](https://en.wikipedia.org/wiki/K-means%2B%2B) initialization algorithm.
 The k-means++ algorithm choses datapoints amongst the data at random, while ensuring that the chosen seeds are far from each other.
@@ -154,7 +136,7 @@ Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refere
 
 ## model
 
-[index.js:315-322](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L315-L322 "Source code on GitHub")
+[index.js:492-499](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L492-L499 "Source code on GitHub")
 
 Return the model for the GMM as a raw JavaScript Object.
 
@@ -162,7 +144,7 @@ Returns **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 ## fromModel
 
-[index.js:334-342](https://github.com/benjamintd/gaussian-mixture/blob/a6bb0a3f969eae8f65b443cfaa64faa00c34fb16/index.js#L334-L342 "Source code on GitHub")
+[index.js:511-519](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L511-L519 "Source code on GitHub")
 
 Instantiate a GMM from an Object model and options.
 
@@ -183,3 +165,94 @@ vars: [1, 1, 0.5]
 ```
 
 Returns **[GMM](#gmm)** the GMM corresponding to the given model
+
+# Histogram
+
+[index.js:533-538](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L533-L538 "Source code on GitHub")
+
+Instantiate a new Histogram.
+
+**Parameters**
+
+-   `h` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?** an object with keys 'counts' and 'bins'. Both are optional.
+    An observation x will be counted for the key i if bins[i][0] &lt;= x &lt; bins[i][1].
+    If bins are not specified, the bins will be corresponding to one unit in the scale of the data.
+    The keys of the 'counts' hash will be stringified integers. (optional, default `{}`)
+
+**Examples**
+
+```javascript
+var h = new Histogram({counts: {'a': 3, 'b': 2, 'c': 5}, bins: {'a': [0, 2], 'b': [2, 4], 'c': [4, 7]}});
+```
+
+```javascript
+var h = new Histogram({counts: {'1': 3, '2': 2, '3': 5}});
+```
+
+```javascript
+var h = new Histogram();
+```
+
+Returns **[Histogram](#histogram)** a histogram object.
+It has keys 'bins' (possibly null) and 'counts'.
+
+## add
+
+[index.js:577-587](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L577-L587 "Source code on GitHub")
+
+Add an observation to an histogram.
+
+**Parameters**
+
+-   `x` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** observation to add tos the histogram
+
+Returns **[Histogram](#histogram)** the histogram with added value.
+
+## flatten
+
+[index.js:593-608](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L593-L608 "Source code on GitHub")
+
+Return a data array from a histogram.
+
+Returns **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)** an array of observations derived from the histogram counts.
+
+## value
+
+[index.js:638-645](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L638-L645 "Source code on GitHub")
+
+Return the median value for the given key, derived from the bins.
+
+**Parameters**
+
+-   `key`  
+
+Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the value for the provided key.
+
+## fromData
+
+[index.js:624-632](https://github.com/benjamintd/gaussian-mixture/blob/dbacb0ace6f5cff11cfdbbaaeb3ccce867fcba45/index.js#L624-L632 "Source code on GitHub")
+
+Instantiate a new Histogram.
+
+**Parameters**
+
+-   `data` **[Array](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)?** array of observations to include in the histogram.
+    Observations that do not correspond to any bin will be discarded. (optional, default `[]`)
+-   `bins` **[Object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object)?** a map from key to range (a range being an array of two elements)
+    An observation x will be counted for the key i if `bins[i][0] <= x < bins[i][1]`.
+    If not specified, the bins will be corresponding to one unit in the scale of the data. (optional, default `{}`)
+
+**Examples**
+
+```javascript
+var h = Histogram.fromData([1, 2, 2, 2, 5, 5], {A: [0, 1], B: [1, 5], C: [5, 10]});
+// {bins: {A: [0, 1], B: [1, 5], C: [5, 10]}, counts: {A: 0, B: 4, C: 2}}
+```
+
+```javascript
+var h = Histogram.fromData([1, 2, 2, 2, 2.4, 2.5, 5, 5]);
+// {counts: {'1': 1, '2': 4, '3': 1, '5': 2}}
+```
+
+Returns **[Histogram](#histogram)** a histogram object
+It has keys 'bins' (possibly null) and 'counts'.

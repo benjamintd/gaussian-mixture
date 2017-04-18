@@ -4,6 +4,7 @@ var test = require('tap').test;
 var data = require('./fixtures/data.json'); // 200 samples from refGmm
 
 var GMM = require('../index');
+var Histogram = require('../index').Histogram;
 
 test('Initialization of a new GMM object.', function (t) {
   t.plan(2);
@@ -61,7 +62,7 @@ test('Convergence of model update', function (t) {
   var refGmm = new GMM(3, [0.2, 0.5, 0.3], [0, 10, 30], [1, 2, 4]);
   var testGmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1]);
   for (var i = 0; i < 200; i++) {
-    testGmm.updateModel(data);
+    testGmm._updateModel(data);
   }
   for (var j = 0; j < 3; j++) {
     t.equals(Math.abs(testGmm.weights[j] - refGmm.weights[j]) < 0.1, true);
@@ -77,7 +78,7 @@ test('log likelihood function', function (t) {
   var l = -Infinity;
   var temp;
   for (var i = 0; i < 15; i++) {
-    gmm.updateModel(data);
+    gmm._updateModel(data);
     temp = gmm.logLikelihood(data);
     t.equals(temp - l >= -1e-5, true);
     l = temp;
@@ -91,7 +92,7 @@ test('EM full optimization', function (t) {
   var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1]);
 
   for (var i = 0; i < 200; i++) {
-    gmm.updateModel(data);
+    gmm._updateModel(data);
   }
   var counter = gmm2.optimize(data);
 
@@ -200,5 +201,114 @@ test('Km++ Initialization', function (t) {
 
   t.throws(function () { gmm.initialize([1]); }, new Error('Data must have more points than the number of components in the model.'));
 
+  t.end();
+});
+
+test('memberships - histogram', function (t) {
+  var h = Histogram.fromData([1, 2, 5, 5.4, 5.5, 6, 7, 7]);
+  var gmm = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+
+  t.same(gmm._membershipsHistogram(h), {
+    1: [0.9818947940807183, 0.01798403047511045, 0.00012117544417123207],
+    2: [0.8788782427321509, 0.11894323591065209, 0.0021785213571970234],
+    5: [0.013212886953789417, 0.7213991842739687, 0.265387928772242],
+    6: [0.0012378419366357771, 0.49938107903168216, 0.49938107903168216],
+    7: [0.00009021165708731931, 0.268917159718714, 0.7309926286241988]
+  });
+
+  t.end();
+});
+
+test('log likelihood - histogram', function (t) {
+  var h = Histogram.fromData([1, 2, 5, 5, 5, 6, 7, 7]);
+  var gmm = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+
+  t.equal(gmm.logLikelihood(h), gmm.logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
+  t.end();
+});
+
+test('optimize - histogram', function (t) {
+  var h = Histogram.fromData([1, 2, 5, 5, 5, 6, 7, 7]);
+  var gmm = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+  var gmm2 = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+  gmm._optimizeHistogram(h);
+  gmm2._optimize([1, 2, 5, 5, 5, 6, 7, 7]);
+  var round = x => Number(x.toFixed(5));
+  t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
+  t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
+  t.same(gmm.model().weights.map(round), gmm2.model().weights.map(round));
+
+  var options = {
+    variancePrior: 3,
+    variancePriorRelevance: 0.5,
+    separationPrior: 3,
+    separationPriorRelevance: 1
+  };
+
+  gmm.options = options;
+  gmm2.options = options;
+
+  gmm.optimize(h);
+  gmm2._optimize([1, 2, 5, 5, 5, 6, 7, 7]);
+  t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
+  t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
+  t.same(gmm.model().weights.map(round), gmm2.model().weights.map(round));
+
+  t.end();
+});
+
+test('histogram total', function (t) {
+  var d = [1, 2, 3, 4, 5, 5, 6, 6, 6];
+
+  var h = Histogram.fromData(d);
+
+  t.equals(Histogram._total(h), 9);
+  t.end();
+});
+
+test('histogram classify', function (t) {
+  t.equals(Histogram._classify(3.4), '3');
+  t.equals(Histogram._classify(3.4, {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]}), 'C');
+  t.same(Histogram._classify(7, {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]}), null);
+  t.end();
+});
+
+test('histogram value', function (t) {
+  var h = new Histogram({
+    bins: {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]},
+    counts: {'A': 5, 'B': 3}
+  });
+  t.equals(h.value('A'), 1.5);
+  t.equals(h.value('B'), 3.2);
+  t.throws(() => h.value('E'));
+  t.end();
+});
+
+test('histogram flatten', function (t) {
+  var h = new Histogram({
+    bins: {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]},
+    counts: {'A': 3, 'B': 2}
+  });
+  t.same(h.flatten(), [1.5, 1.5, 1.5, 3.2, 3.2]);
   t.end();
 });
