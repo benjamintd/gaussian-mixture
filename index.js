@@ -521,6 +521,9 @@ GMM.fromModel = function (model, options) {
 /**
  * Instantiate a new Histogram.
  * @param {Object} [h={}] an object with keys 'counts' and 'bins'. Both are optional.
+ * An observation x will be counted for the key i if bins[i][0] <= x < bins[i][1].
+ * If bins are not specified, the bins will be corresponding to one unit in the scale of the data.
+ * The keys of the 'counts' hash will be stringified integers.
  * @return {Histogram} a histogram object.
  * It has keys 'bins' (possibly null) and 'counts'.
  * @example var h = new Histogram({counts: {'a': 3, 'b': 2, 'c': 5}, bins: {'a': [0, 2], 'b': [2, 4], 'c': [4, 7]}});
