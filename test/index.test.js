@@ -204,7 +204,7 @@ test('Km++ Initialization', function (t) {
   t.end();
 });
 
-test('memberships histogram', function (t) {
+test('memberships - histogram', function (t) {
   var h = Histogram.fromData([1, 2, 5, 5.4, 5.5, 6, 7, 7]);
   var gmm = GMM.fromModel({
     means: [1, 5, 7],
@@ -234,5 +234,81 @@ test('log likelihood - histogram', function (t) {
   });
 
   t.equal(gmm.logLikelihoodHistogram(h), gmm.logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
+  t.end();
+});
+
+test('optimize - histogram', function (t) {
+  var h = Histogram.fromData([1, 2, 5, 5, 5, 6, 7, 7]);
+  var gmm = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+  var gmm2 = GMM.fromModel({
+    means: [1, 5, 7],
+    vars: [2, 2, 2],
+    weights: [0.3, 0.5, 0.2],
+    nComponents: 3
+  });
+  gmm.optimizeHistogram(h);
+  gmm2.optimize([1, 2, 5, 5, 5, 6, 7, 7]);
+  var round = x => Number(x.toFixed(5));
+  t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
+  t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
+  t.same(gmm.model().weights.map(round), gmm2.model().weights.map(round));
+
+  var options = {
+    variancePrior: 3,
+    variancePriorRelevance: 0.5,
+    separationPrior: 3,
+    separationPriorRelevance: 1
+  };
+
+  gmm.options = options;
+  gmm2.options = options;
+
+  gmm.optimizeHistogram(h);
+  gmm2.optimize([1, 2, 5, 5, 5, 6, 7, 7]);
+  t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
+  t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
+  t.same(gmm.model().weights.map(round), gmm2.model().weights.map(round));
+
+  t.end();
+});
+
+test('histogram total', function (t) {
+  var d = [1, 2, 3, 4, 5, 5, 6, 6, 6];
+
+  var h = Histogram.fromData(d);
+
+  t.equals(Histogram._total(h), 9);
+  t.end();
+});
+
+test('histogram classify', function (t) {
+  t.equals(Histogram._classify(3.4), '3');
+  t.equals(Histogram._classify(3.4, {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]}), 'C');
+  t.same(Histogram._classify(7, {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]}), null);
+  t.end();
+});
+
+test('histogram value', function (t) {
+  var h = new Histogram({
+    bins: {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]},
+    counts: {'A': 5, 'B': 3}
+  });
+  t.equals(h.value('A'), 1.5);
+  t.equals(h.value('B'), 3.2);
+  t.true(isNaN(h.value('E')));
+  t.end();
+});
+
+test('histogram flatten', function (t) {
+  var h = new Histogram({
+    bins: {'A': [1, 2], 'B': [3, 3.4], 'C': [3.4, 5], 'D': [5, 6]},
+    counts: {'A': 3, 'B': 2}
+  });
+  t.same(h.flatten(), [1.5, 1.5, 1.5, 3.2, 3.2]);
   t.end();
 });

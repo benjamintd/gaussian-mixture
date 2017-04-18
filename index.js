@@ -197,7 +197,7 @@ GMM.prototype.updateModelHistogram = function (h, memberships) {
 
   // Update the mixture weights
   var componentWeights = [];
-  var reduceFunction = function (k) { return function (a, b) { return (a + memberships[b][k]); }; };
+  var reduceFunction = function (k) { return function (a, b) { return (a + memberships[b][k] * h.counts[b]); }; };
   for (let k = 0; k < this.nComponents; k++) {
     componentWeights[k] = keys.reduce(reduceFunction(k), 0);
   }
@@ -304,13 +304,7 @@ GMM.prototype.logLikelihoodHistogram = function (h) {
   for (var i = 0, n = keys.length; i < n; i++) {
     p = 0;
     let key = keys[i];
-    let v;
-
-    if (h.bins && h.bins[key]) {
-      v = (h.bins[key][0] + h.bins[key][1]) / 2;
-    } else {
-      v = Number(keys[i]);
-    }
+    let v = h.value(key);
 
     for (var k = 0; k < this.nComponents; k++) {
       p += this.weights[k] * gaussians[k].pdf(v);
@@ -362,6 +356,7 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
 
 /**
  * Compute the optimal GMM components given a histogram of data.
+ * K-means++ initialization is not implemented for the histogram version of this function.
  * @param {Histogram} h histogram of data used to optimize the model
  * @param {Number} [maxIterations=200] maximum number of expectation-maximization steps
  * @param {Number} [logLikelihoodTol=0.0000001] tolerance for the log-likelihood
@@ -566,12 +561,7 @@ Histogram.prototype.flatten = function () {
 
   for (var i = 0, n = keys.length; i < n; i++) {
     var k = keys[i];
-    var v;
-    if (this.bins && this.bins[k]) {
-      v = (this.bins[k][0] + this.bins[k][1]) / 2;
-    } else {
-      v = Number(keys[i]);
-    }
+    var v = this.value(k);
 
     for (var j = 0; j < this.counts[k]; j++) {
       r.push(v);
