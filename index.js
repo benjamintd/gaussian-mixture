@@ -335,7 +335,6 @@ GMM.prototype._logLikelihoodMemberships = function (memberships) {
  * If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
  * This allows to have a data-dependent initialization and should converge quicker and to a better model.
  * The initialization is agnostic to the other priors that the options might contain.
- * The `initialize` flag is unavailable with the histogram version of this function
  * @param {(Array|Histogram)} data the data array or histogram
  * @param {Number} [maxIterations=200] maximum number of expectation-maximization steps
  * @param {Number} [logLikelihoodTol=0.0000001] tolerance for the log-likelihood
@@ -366,7 +365,7 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]
  */
 GMM.prototype._optimize = function (data, maxIterations, logLikelihoodTol) {
-  if (this.options.initialize) this.initialize(data);
+  if (this.options.initialize) this._initialize(data);
 
   maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
   logLikelihoodTol = logLikelihoodTol === undefined ? EPSILON : logLikelihoodTol;
@@ -386,7 +385,6 @@ GMM.prototype._optimize = function (data, maxIterations, logLikelihoodTol) {
 
 /** @private
  * Compute the optimal GMM components given a histogram of data.
- * K-means++ initialization is not implemented for the histogram version of this function.
  * @param {Histogram} h histogram of data used to optimize the model
  * @param {Number} [maxIterations=200] maximum number of expectation-maximization steps
  * @param {Number} [logLikelihoodTol=0.0000001] tolerance for the log-likelihood
@@ -399,6 +397,8 @@ GMM.prototype._optimize = function (data, maxIterations, logLikelihoodTol) {
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]
  */
 GMM.prototype._optimizeHistogram = function (h, maxIterations, logLikelihoodTol) {
+  if (this.options.initialize) this._initializeHistogram(h);
+
   maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
   logLikelihoodTol = logLikelihoodTol === undefined ? EPSILON : logLikelihoodTol;
   var logLikelihoodDiff = Infinity;
@@ -414,7 +414,7 @@ GMM.prototype._optimizeHistogram = function (h, maxIterations, logLikelihoodTol)
 };
 
 
-/**
+/** @private
  * Initialize the GMM given data with the [K-means++](https://en.wikipedia.org/wiki/K-means%2B%2B) initialization algorithm.
  * The k-means++ algorithm choses datapoints amongst the data at random, while ensuring that the chosen seeds are far from each other.
  * The resulting seeds are returned sorted.
@@ -425,7 +425,7 @@ GMM.prototype._optimizeHistogram = function (h, maxIterations, logLikelihoodTol)
  var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
  gmm.initialize(data); // updates the means of the GMM with the K-means++ initialization algorithm, returns something like [1.3, 7.4, 14.3]
  */
-GMM.prototype.initialize = function (data) {
+GMM.prototype._initialize = function (data) {
   var n = data.length;
 
   if (n < this.nComponents) throw new Error('Data must have more points than the number of components in the model.');
@@ -462,6 +462,74 @@ GMM.prototype.initialize = function (data) {
     }
 
     means.push(c);
+  }
+
+  means.sort(function (a, b) { return a - b; });
+  this.means = means;
+  return means;
+};
+
+/** @private
+ * Initialize the GMM given data with the [K-means++](https://en.wikipedia.org/wiki/K-means%2B%2B) initialization algorithm.
+ * The k-means++ algorithm choses datapoints amongst the data at random, while ensuring that the chosen seeds are far from each other.
+ * The resulting seeds are returned sorted.
+ * @param {Array} data array of numbers representing the samples to use to optimize the model
+ * @return {Array} an array of length nComponents that contains the means for the initialization.
+ * @example
+ var gmm = new GMM(3, [0.3, .04, 0.3], [1, 5, 10]);
+ var data = [1.2, 1.3, 7.4, 1.4, 14.3, 15.3, 1.0, 7.2];
+ gmm.initialize(data); // updates the means of the GMM with the K-means++ initialization algorithm, returns something like [1.3, 7.4, 14.3]
+ */
+GMM.prototype._initializeHistogram = function (h) {
+  var n = h.total;
+
+  if (n < this.nComponents) throw new Error('Data must have more points than the number of components in the model.');
+
+  var keys = Object.keys(h.counts);
+  var means = [];
+
+  // Find the first seed at random
+  var r = Math.random();
+
+  for (let i = 0; i < keys.length; i++) {
+    let k = keys[i];
+    let p = (h.counts[k] / n) || 0;
+    if (p > r || i === (keys.length - 1)) {
+      means.push(h.value(k));
+      break;
+    } else {
+      r -= p;
+    }
+  }
+
+  var distances = [];
+
+  // Chose all other seeds
+  for (let m = 1; m < this.nComponents; m++) {
+
+    // Compute the distance from each datapoint
+    var dsum = 0;
+    for (let i = 0; i < keys.length; i++) {
+      let k = keys[i];
+      var meansDistances = means.map(function (x) { return (x - h.value(k)) * (x - h.value(k)); });
+      var d = meansDistances.reduce(function (a, b) { return Math.min(a, b); });
+      distances[i] = d * h.counts[k];
+      dsum += d;
+    }
+
+    // Chose the next seed at random with probabilities d / dsum
+    let r = Math.random();
+
+    for (let i = 0; i < keys.length; i++) {
+      let k = keys[i];
+      let p = (distances[i] / dsum) || 0;
+      if (p > r || i === (keys.length - 1)) {
+        means.push(h.value(k));
+        break;
+      } else {
+        r -= p;
+      }
+    }
   }
 
   means.sort(function (a, b) { return a - b; });

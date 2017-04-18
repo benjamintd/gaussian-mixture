@@ -193,13 +193,34 @@ test('Barycenter method', function (t) {
 test('Km++ Initialization', function (t) {
   var gmm = new GMM(3, [0.4, 0.2, 0.4], [-1, 13, 25], [1, 2, 1]);
 
-  var means = gmm.initialize([1, 3, 3, 3, 2, 2, 1, 1, 3, 2, 2, 1, 3, 3, 3, 2, 1]);
+  var means = gmm._initialize([1, 3, 3, 3, 2, 2, 1, 1, 3, 2, 2, 1, 3, 3, 3, 2, 1]);
   t.same(means, [1, 2, 3]);
 
-  t.same(gmm.initialize([1, 1, 1, 1]), [1, 1, 1]);
-  t.same(gmm.initialize([1, 1, 1, 2, 17]), [1, 2, 17]);
+  t.same(gmm._initialize([1, 1, 1, 1]), [1, 1, 1]);
+  t.same(gmm._initialize([1, 1, 1, 2, 17]), [1, 2, 17]);
 
-  t.throws(function () { gmm.initialize([1]); }, new Error('Data must have more points than the number of components in the model.'));
+  t.throws(function () { gmm._initialize([1]); }, new Error('Data must have more points than the number of components in the model.'));
+
+  t.end();
+});
+
+test('Km++ Initialization - Histogram', function (t) {
+  var gmm = new GMM(3, [0.4, 0.2, 0.4], [-1, 13, 25], [1, 2, 1]);
+  var h = Histogram.fromData([1, 3, 3, 3, 2, 2, 1, 1, 3, 2, 2, 1, 3, 3, 3, 2, 1]);
+  var means = gmm._initializeHistogram(h);
+  t.same(means, [1, 2, 3]);
+
+  t.same(gmm._initializeHistogram(Histogram.fromData([1, 1, 1, 1])), [1, 1, 1]);
+  t.same(gmm._initializeHistogram(Histogram.fromData([1, 1, 1, 2, 17])), [1, 2, 17]);
+
+  t.throws(function () { gmm._initializeHistogram(Histogram.fromData([1])); }, new Error('Data must have more points than the number of components in the model.'));
+
+  h = new Histogram({
+    counts: {'A': 10000, 'B': 0.001, 'C': 10, 'D': 10},
+    bins: {'A': [0, 1], 'B': [1, 2], 'C': [3, 4], 'D': [4, 5]}
+  });
+
+  t.same(gmm._initializeHistogram(h), [0.5, 3.5, 4.5]);
 
   t.end();
 });
@@ -262,7 +283,8 @@ test('optimize - histogram', function (t) {
     variancePrior: 3,
     variancePriorRelevance: 0.5,
     separationPrior: 3,
-    separationPriorRelevance: 1
+    separationPriorRelevance: 1,
+    initialize: true
   };
 
   gmm.options = options;
