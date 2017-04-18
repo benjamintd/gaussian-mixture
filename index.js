@@ -85,13 +85,13 @@ GMM.prototype.memberships = function (data, gaussians) {
   return memberships;
 };
 
-/**
+/** @private
  * Given a histogram, determine the membership for each bin and for each component of the GMM.
  * @param {Histogram} h histogram representing the data to find memberships for.
  * @param {Array} gaussians (optional) an Array of length nComponents that contains the gaussians for the GMM
  * @return {Object} a hash from key to memberships, where values are {Array} of length nComponents that sum to 1.
  */
-GMM.prototype.membershipsHistogram = function (h, gaussians) {
+GMM.prototype._membershipsHistogram = function (h, gaussians) {
   var memberships = {};
   if (!gaussians) gaussians = this._gaussians();
 
@@ -190,7 +190,7 @@ GMM.prototype._updateModel = function (data, memberships) {
 GMM.prototype._updateModelHistogram = function (h, memberships) {
   // First, we compute the data memberships.
   var n = h.total;
-  if (!memberships) memberships = this.membershipsHistogram(h);
+  if (!memberships) memberships = this._membershipsHistogram(h);
   var alpha;
 
   var keys = Object.keys(h.counts);
@@ -521,8 +521,11 @@ GMM.fromModel = function (model, options) {
 /**
  * Instantiate a new Histogram.
  * @param {Object} [h={}] an object with keys 'counts' and 'bins'. Both are optional.
- * @return {Histogram} a histogram object
+ * @return {Histogram} a histogram object.
  * It has keys 'bins' (possibly null) and 'counts'.
+ * @example var h = new Histogram({counts: {'a': 3, 'b': 2, 'c': 5}, bins: {'a': [0, 2], 'b': [2, 4], 'c': [4, 7]}});
+ * @example var h = new Histogram({counts: {'1': 3, '2': 2, '3': 5}});
+ * @example var h = new Histogram();
  */
 function Histogram(h) {
   h = h || {};
@@ -610,9 +613,9 @@ Histogram.prototype.flatten = function () {
  * If not specified, the bins will be corresponding to one unit in the scale of the data.
  * @return {Histogram} a histogram object
  * It has keys 'bins' (possibly null) and 'counts'.
- * @example var h = new Histogram([1, 2, 2, 2, 5, 5], {A: [0, 1], B: [1, 5], C: [5, 10]});
+ * @example var h = Histogram.fromData([1, 2, 2, 2, 5, 5], {A: [0, 1], B: [1, 5], C: [5, 10]});
  // {bins: {A: [0, 1], B: [1, 5], C: [5, 10]}, counts: {A: 0, B: 4, C: 2}}
- * @example var h = new Histogram([1, 2, 2, 2, 2.4, 2.5, 5, 5]);
+ * @example var h = Histogram.fromData([1, 2, 2, 2, 2.4, 2.5, 5, 5]);
  // {counts: {'1': 1, '2': 4, '3': 1, '5': 2}}
  */
 Histogram.fromData = function (data, bins) {

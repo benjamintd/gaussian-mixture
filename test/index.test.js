@@ -213,7 +213,7 @@ test('memberships - histogram', function (t) {
     nComponents: 3
   });
 
-  t.same(gmm.membershipsHistogram(h), {
+  t.same(gmm._membershipsHistogram(h), {
     1: [0.9818947940807183, 0.01798403047511045, 0.00012117544417123207],
     2: [0.8788782427321509, 0.11894323591065209, 0.0021785213571970234],
     5: [0.013212886953789417, 0.7213991842739687, 0.265387928772242],
@@ -233,7 +233,7 @@ test('log likelihood - histogram', function (t) {
     nComponents: 3
   });
 
-  t.equal(gmm._logLikelihoodHistogram(h), gmm._logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
+  t.equal(gmm.logLikelihood(h), gmm.logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
   t.end();
 });
 
@@ -268,7 +268,7 @@ test('optimize - histogram', function (t) {
   gmm.options = options;
   gmm2.options = options;
 
-  gmm._optimizeHistogram(h);
+  gmm.optimize(h);
   gmm2._optimize([1, 2, 5, 5, 5, 6, 7, 7]);
   t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
   t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
