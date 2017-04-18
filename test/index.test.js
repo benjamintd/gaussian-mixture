@@ -300,7 +300,7 @@ test('histogram value', function (t) {
   });
   t.equals(h.value('A'), 1.5);
   t.equals(h.value('B'), 3.2);
-  t.true(isNaN(h.value('E')));
+  t.throws(() => h.value('E'));
   t.end();
 });
 

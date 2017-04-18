@@ -633,8 +633,9 @@ Histogram.fromData = function (data, bins) {
  * @return {Number} the value for the provided key.
  */
 Histogram.prototype.value = function (key) {
-  if (this.bins && this.bins[key]) {
-    return (this.bins[key][0] + this.bins[key][1]) / 2;
+  if (this.bins) {
+    if (this.bins[key]) return (this.bins[key][0] + this.bins[key][1]) / 2;
+    else throw new Error('No bin for this key.');
   } else {
     return Number(key);
   }
