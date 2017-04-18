@@ -126,13 +126,13 @@ GMM.prototype.membership = function (x, gaussians) {
   return membership.map(function (a) { return a / sum; });
 };
 
-/**
+/** @private
  * Perform one expectation-maximization step and update the GMM weights, means and variances in place.
  * Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
  * @param {Array} data array of numbers representing the samples to use to update the model
  * @param {Array} memberships the memberships array for the given data (optional).
  */
-GMM.prototype.updateModel = function (data, memberships) {
+GMM.prototype._updateModel = function (data, memberships) {
   // First, we compute the data memberships.
   var n = data.length;
   if (!memberships) memberships = this.memberships(data);
@@ -181,13 +181,13 @@ GMM.prototype.updateModel = function (data, memberships) {
   }
 };
 
-/**
+/** @private
  * Perform one expectation-maximization step and update the GMM weights, means and variances in place.
  * Optionally, if options.variancePrior and options.priorRelevance are defined, mix in the prior.
  * @param {Histogram} h histogram representing the data.
  * @param {Array} memberships the memberships object for the given histogram (optional).
  */
-GMM.prototype.updateModelHistogram = function (h, memberships) {
+GMM.prototype._updateModelHistogram = function (h, memberships) {
   // First, we compute the data memberships.
   var n = h.total;
   if (!memberships) memberships = this.membershipsHistogram(h);
@@ -244,34 +244,24 @@ GMM.prototype.updateModelHistogram = function (h, memberships) {
   }
 };
 
-/** @private
- * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of memberships.
- * @param {Array} memberships the memberships array, matrix of size n * this.nComponents, where n is the size of the data.
+/**
+ * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given data.
+ * @param {(Array|Histogram)} data the data array or histogram
  * @return {Number} the log-likelihood
  */
-GMM.prototype._logLikelihoodMemberships = function (memberships) {
-  var l = 0;
+GMM.prototype.logLikelihood = function (data) {
+  if (Array.isArray(data)) return this._logLikelihood(data);
+  if (Histogram.prototype.isPrototypeOf(data)) return this._logLikelihoodHistogram(data);
 
-  for (var i = 0, n = memberships.length; i < n; i++) {
-    var p = 0;
-    for (var k = 0; k < this.nComponents; k++) {
-      p += this.weights[k] * memberships[i][k];
-    }
-    if (p === 0) {
-      return -Infinity;
-    } else {
-      l += Math.log(p);
-    }
-  }
-  return l;
+  throw new Error('Data must be an Array of a Histogram.');
 };
 
-/**
+/** @private
  * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of data.
  * @param {Array} data the data array
  * @return {Number} the log-likelihood
  */
-GMM.prototype.logLikelihood = function (data) {
+GMM.prototype._logLikelihood = function (data) {
   var l = 0;
   var p = 0;
   var gaussians = this._gaussians();
@@ -289,12 +279,12 @@ GMM.prototype.logLikelihood = function (data) {
   return l;
 };
 
-/**
+/** @private
  * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given a histogram.
  * @param {Histogram} h the data histogram
  * @return {Number} the log-likelihood
  */
-GMM.prototype.logLikelihoodHistogram = function (h) {
+GMM.prototype._logLikelihoodHistogram = function (h) {
   var l = 0;
   var p = 0;
   var gaussians = this._gaussians();
@@ -319,7 +309,47 @@ GMM.prototype.logLikelihoodHistogram = function (h) {
   return l;
 };
 
+/** @private
+ * Compute the [log-likelihood](https://en.wikipedia.org/wiki/Likelihood_function#Log-likelihood) for the GMM given an array of memberships.
+ * @param {Array} memberships the memberships array, matrix of size n * this.nComponents, where n is the size of the data.
+ * @return {Number} the log-likelihood
+ */
+GMM.prototype._logLikelihoodMemberships = function (memberships) {
+  var l = 0;
+  for (var i = 0, n = memberships.length; i < n; i++) {
+    var p = 0;
+    for (var k = 0; k < this.nComponents; k++) {
+      p += this.weights[k] * memberships[i][k];
+    }
+    if (p === 0) {
+      return -Infinity;
+    } else {
+      l += Math.log(p);
+    }
+  }
+  return l;
+};
+
 /**
+ * Compute the optimal GMM components given an array of data.
+ * If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
+ * This allows to have a data-dependent initialization and should converge quicker and to a better model.
+ * The initialization is agnostic to the other priors that the options might contain.
+ * The `initialize` flag is unavailable with the histogram version of this function
+ * @param {(Array|Histogram)} data the data array or histogram
+ * @param {Number} [maxIterations=200] maximum number of expectation-maximization steps
+ * @param {Number} [logLikelihoodTol=0.0000001] tolerance for the log-likelihood
+ * to determine if we reached the optimum
+ * @return {Number} the number of steps to reach the converged solution
+ */
+GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
+  if (Array.isArray(data)) return this._optimize(data, maxIterations, logLikelihoodTol);
+  if (Histogram.prototype.isPrototypeOf(data)) return this._optimizeHistogram(data, maxIterations, logLikelihoodTol);
+
+  throw new Error('Data must be an Array of a Histogram.');
+};
+
+/** @private
  * Compute the optimal GMM components given an array of data.
  * If options has a true flag for `initialize`, the optimization will begin with a K-means++ initialization.
  * This allows to have a data-dependent initialization and should converge quicker and to a better model.
@@ -335,7 +365,7 @@ GMM.prototype.logLikelihoodHistogram = function (h) {
  gmm.optimize(data); // updates weights, means and variances with the EM algorithm given the data.
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]
  */
-GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
+GMM.prototype._optimize = function (data, maxIterations, logLikelihoodTol) {
   if (this.options.initialize) this.initialize(data);
 
   maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
@@ -345,7 +375,7 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
   var temp;
   var memberships;
   for (var i = 0; i < maxIterations && logLikelihoodDiff > logLikelihoodTol; i++) {
-    this.updateModel(data, memberships);
+    this._updateModel(data, memberships);
     memberships = this.memberships(data);
     temp = this._logLikelihoodMemberships(memberships);
     logLikelihoodDiff = Math.abs(logLikelihood - temp);
@@ -354,7 +384,7 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
   return i;
 };
 
-/**
+/** @private
  * Compute the optimal GMM components given a histogram of data.
  * K-means++ initialization is not implemented for the histogram version of this function.
  * @param {Histogram} h histogram of data used to optimize the model
@@ -368,15 +398,15 @@ GMM.prototype.optimize = function (data, maxIterations, logLikelihoodTol) {
  gmm.optimizeHistogram(h); // updates weights, means and variances with the EM algorithm given the data.
  console.log(gmm.means); // >> [1.225, 7.3, 14.8]
  */
-GMM.prototype.optimizeHistogram = function (h, maxIterations, logLikelihoodTol) {
+GMM.prototype._optimizeHistogram = function (h, maxIterations, logLikelihoodTol) {
   maxIterations = maxIterations === undefined ? MAX_ITERATIONS : maxIterations;
   logLikelihoodTol = logLikelihoodTol === undefined ? EPSILON : logLikelihoodTol;
   var logLikelihoodDiff = Infinity;
   var logLikelihood = -Infinity;
   var temp;
   for (var i = 0; i < maxIterations && logLikelihoodDiff > logLikelihoodTol; i++) {
-    this.updateModelHistogram(h);
-    temp = this.logLikelihoodHistogram(h);
+    this._updateModelHistogram(h);
+    temp = this._logLikelihoodHistogram(h);
     logLikelihoodDiff = Math.abs(logLikelihood - temp);
     logLikelihood = temp;
   }

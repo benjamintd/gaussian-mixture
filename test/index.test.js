@@ -62,7 +62,7 @@ test('Convergence of model update', function (t) {
   var refGmm = new GMM(3, [0.2, 0.5, 0.3], [0, 10, 30], [1, 2, 4]);
   var testGmm = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1]);
   for (var i = 0; i < 200; i++) {
-    testGmm.updateModel(data);
+    testGmm._updateModel(data);
   }
   for (var j = 0; j < 3; j++) {
     t.equals(Math.abs(testGmm.weights[j] - refGmm.weights[j]) < 0.1, true);
@@ -78,7 +78,7 @@ test('log likelihood function', function (t) {
   var l = -Infinity;
   var temp;
   for (var i = 0; i < 15; i++) {
-    gmm.updateModel(data);
+    gmm._updateModel(data);
     temp = gmm.logLikelihood(data);
     t.equals(temp - l >= -1e-5, true);
     l = temp;
@@ -92,7 +92,7 @@ test('EM full optimization', function (t) {
   var gmm2 = new GMM(3, undefined, [-1, 13, 25], [1, 1, 1]);
 
   for (var i = 0; i < 200; i++) {
-    gmm.updateModel(data);
+    gmm._updateModel(data);
   }
   var counter = gmm2.optimize(data);
 
@@ -233,7 +233,7 @@ test('log likelihood - histogram', function (t) {
     nComponents: 3
   });
 
-  t.equal(gmm.logLikelihoodHistogram(h), gmm.logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
+  t.equal(gmm._logLikelihoodHistogram(h), gmm._logLikelihood([1, 2, 5, 5, 5, 6, 7, 7]));
   t.end();
 });
 
@@ -251,8 +251,8 @@ test('optimize - histogram', function (t) {
     weights: [0.3, 0.5, 0.2],
     nComponents: 3
   });
-  gmm.optimizeHistogram(h);
-  gmm2.optimize([1, 2, 5, 5, 5, 6, 7, 7]);
+  gmm._optimizeHistogram(h);
+  gmm2._optimize([1, 2, 5, 5, 5, 6, 7, 7]);
   var round = x => Number(x.toFixed(5));
   t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
   t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
@@ -268,8 +268,8 @@ test('optimize - histogram', function (t) {
   gmm.options = options;
   gmm2.options = options;
 
-  gmm.optimizeHistogram(h);
-  gmm2.optimize([1, 2, 5, 5, 5, 6, 7, 7]);
+  gmm._optimizeHistogram(h);
+  gmm2._optimize([1, 2, 5, 5, 5, 6, 7, 7]);
   t.same(gmm.model().means.map(round), gmm2.model().means.map(round));
   t.same(gmm.model().vars.map(round), gmm2.model().vars.map(round));
   t.same(gmm.model().weights.map(round), gmm2.model().weights.map(round));
