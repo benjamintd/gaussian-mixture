@@ -8,12 +8,12 @@ This module implements a 1D Gaussian Mixture class that allows to fit a distribu
 
 ### Install
 ```sh
-npm install gaussianMixture
+npm install gaussian-mixture
 ```
 
 ### Require
 ```js
-var GMM = require('gaussianMixture');
+var GMM = require('gaussian-mixture');
 ```
 
 ----------------
@@ -150,8 +150,8 @@ Instantiate a GMM from an Object model and options.
 
 **Parameters**
 
--   `model`  
--   `options`  
+-   `model`
+-   `options`
 
 **Examples**
 
@@ -224,7 +224,7 @@ Return the median value for the given key, derived from the bins.
 
 **Parameters**
 
--   `key`  
+-   `key`
 
 Returns **[Number](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number)** the value for the provided key.
 

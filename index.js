@@ -2,7 +2,6 @@
 
 // Imports
 var gaussian = require('gaussian');
-var _ = require('underscore');
 
 // Constants
 var MAX_ITERATIONS = 200;
@@ -25,9 +24,9 @@ module.exports.Histogram = Histogram;
  */
 function GMM(nComponents, weights, means, vars, options) {
   this.nComponents = nComponents;
-  this.weights = weights === undefined ? _.range(nComponents).map(function () { return 1 / nComponents; }) : weights;
-  this.means = means === undefined ? _.range(nComponents) : means;
-  this.vars = vars === undefined ? _.range(nComponents).map(function () { return 1; }) : vars;
+  this.weights = weights === undefined ? range(nComponents).map(function () { return 1 / nComponents; }) : weights;
+  this.means = means === undefined ? range(nComponents) : means;
+  this.vars = vars === undefined ? range(nComponents).map(function () { return 1; }) : vars;
   if (nComponents !== this.weights.length ||
       nComponents !== this.means.length ||
       nComponents !== this.vars.length) {
@@ -157,7 +156,7 @@ GMM.prototype._updateModel = function (data, memberships) {
   // If there is a separation prior:
   if (this.options.separationPrior && this.options.separationPriorRelevance) {
     var separationPrior = this.options.separationPrior;
-    var priorMeans = _.range(this.nComponents).map(function (a) { return (a * separationPrior); });
+    var priorMeans = range(this.nComponents).map(function (a) { return (a * separationPrior); });
     var priorCenter = GMM._barycenter(priorMeans, this.weights);
     var center = GMM._barycenter(this.means, this.weights);
     for (let k = 0; k < this.nComponents; k++) {
@@ -218,7 +217,7 @@ GMM.prototype._updateModelHistogram = function (h, memberships) {
   // If there is a separation prior:
   if (this.options.separationPrior && this.options.separationPriorRelevance) {
     var separationPrior = this.options.separationPrior;
-    var priorMeans = _.range(this.nComponents).map(function (a) { return (a * separationPrior); });
+    var priorMeans = range(this.nComponents).map(function (a) { return (a * separationPrior); });
     var priorCenter = GMM._barycenter(priorMeans, this.weights);
     var center = GMM._barycenter(this.means, this.weights);
     for (let k = 0; k < this.nComponents; k++) {
@@ -711,3 +710,11 @@ Histogram.prototype.value = function (key) {
     return Number(key);
   }
 };
+
+function range(n) {
+  var result = new Array(n);
+  for (var i = 0; i < n; i++) {
+    result[i] = i;
+  }
+  return result;
+}

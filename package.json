@@ -1,6 +1,6 @@
 {
-  "name": "gaussianMixture",
-  "version": "0.9.0",
+  "name": "gaussian-mixture",
+  "version": "0.9.1",
   "description": "An implementation of a Gaussian Mixture class in one dimension, that allows to fit models with an Expectation Maximization algorithm.",
   "main": "index.js",
   "repository": "git@github.com:benjamintd/gaussian-mixture.git",
@@ -21,10 +21,9 @@
   "devDependencies": {
     "eslint": "^3.4.0",
     "eslint-config-mourner": "^2.0.1",
-    "tap": "~6.2.0"
+    "tap": "^15.1.5"
   },
   "dependencies": {
-    "gaussian": "~1.1.0",
-    "underscore": "~1.8.3"
+    "gaussian": "~1.1.0"
   }
 }
